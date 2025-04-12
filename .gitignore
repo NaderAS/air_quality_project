@@ -1,0 +1,32 @@
+# Ignore virtual environments
+venv/
+
+# Byte-compiled / cached
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode project settings
+.vscode/
+
+# OS-specific junk
+.DS_Store
+Thumbs.db
+
+# Log files
+logs/
+*.log
+
+# Excel/PowerBI exports
+*.xlsx
+*.xls
+
+# Database credentials or environment configs
+config/db_config.py
+.env
+
+# Python virtual environment packages
+*.egg-info/

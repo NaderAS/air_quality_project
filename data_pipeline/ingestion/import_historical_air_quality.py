@@ -14,6 +14,13 @@ def sanitize_table_name(filename):
 
 def load_csv_as_table(file_path, raw_table_name):
     df = pd.read_csv(file_path)
+
+    # 🧹 Clean and sort by date column if it exists
+    date_col = next((col for col in df.columns if "date" in col.lower()), None)
+    if date_col:
+        df[date_col] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
+        df = df.sort_values(by=date_col, ascending=False)
+
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
 

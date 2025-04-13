@@ -1,8 +1,8 @@
-import sys
 import os
+import sys
 
-# Ensure project root is in sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add project root to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))\
 
 import pandas as pd
 import psycopg2
@@ -56,7 +56,7 @@ def get_aqi_category(aqi_value):
 def create_table_if_needed(cur):
     cur.execute("""
         CREATE SCHEMA IF NOT EXISTS transformations;
-        CREATE TABLE IF NOT EXISTS transformations.final_beijing_merged (
+        CREATE TABLE IF NOT EXISTS transformations.final_city_merged (
             station_id INTEGER,
             datetime TIMESTAMP,
             source TEXT,
@@ -76,48 +76,55 @@ def merge_and_insert():
     cur = conn.cursor()
     create_table_if_needed(cur)
 
-    # Live
-    df_live = pd.read_sql("""
-        SELECT station_id, datetime, source, pm25, pm10, o3, no2, so2, co
-        FROM transformations.merged_observations_pollutants
-        WHERE station_id = 3
-    """, conn)
+    all_final_rows = []
 
-    # Historical
-    df_hist = pd.read_sql("SELECT * FROM csv_data.beijing_air_quality", conn)
-    df_hist.columns = [
-        col.strip().lower().replace("_", "") for col in df_hist.columns
-    ]
-    df_hist['datetime'] = pd.to_datetime(df_hist['date'], format='%d/%m/%Y', errors='coerce')
-    df_hist['station_id'] = 3
-    df_hist['source'] = 'csv'
+    for city_id, city_name in [(3, 'beijing'), (4, 'delhi'), (5, 'paris')]:
+        print(f"📥 Processing {city_name.capitalize()} (station_id={city_id})...")
 
-    for pol in ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']:
-        df_hist[pol] = pd.to_numeric(df_hist.get(pol), errors='coerce')
+        # Live data
+        df_live = pd.read_sql(f"""
+            SELECT station_id, datetime, source, pm25, pm10, o3, no2, so2, co
+            FROM transformations.merged_observations_pollutants
+            WHERE station_id = {city_id}
+        """, conn)
 
-    # AQI calculation
-    def row_max_aqi(row):
-        values = [calculate_aqi(pol, row[pol]) for pol in ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']]
-        values = [v for v in values if v is not None]
-        return max(values) if values else None
+        # Historical data
+        df_hist = pd.read_sql(f"SELECT * FROM csv_data.{city_name}_air_quality", conn)
+        df_hist.columns = [col.strip().lower().replace("_", "") for col in df_hist.columns]
+        df_hist['datetime'] = pd.to_datetime(df_hist['date'], dayfirst=False, errors='coerce')
+        df_hist['station_id'] = city_id
+        df_hist['source'] = 'csv'
 
-    for df in [df_live, df_hist]:
-        df['aqi'] = df.apply(row_max_aqi, axis=1)
-        df['aqi_category'] = df['aqi'].apply(get_aqi_category)
+        for pol in ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']:
+            df_hist[pol] = pd.to_numeric(df_hist.get(pol), errors='coerce')
 
-    df_live = df_live[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi', 'aqi_category']]
-    df_hist = df_hist[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi', 'aqi_category']]
+        def row_max_aqi(row):
+            values = [calculate_aqi(pol, row[pol]) for pol in ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']]
+            values = [v for v in values if v is not None]
+            return max(values) if values else None
 
-    # Final table
-    df_final = pd.concat([df_live, df_hist], ignore_index=True)
+        for df in [df_live, df_hist]:
+            df['aqi'] = df.apply(row_max_aqi, axis=1)
+            df['aqi_category'] = df['aqi'].apply(get_aqi_category)
+
+        df_live = df_live[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi', 'aqi_category']]
+        df_hist = df_hist[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi', 'aqi_category']]
+
+        all_final_rows.append(pd.concat([df_live, df_hist], ignore_index=True))
+
+    df_final = pd.concat(all_final_rows, ignore_index=True)
 
     for _, row in df_final.iterrows():
+        if pd.isna(row['datetime']):
+            continue  # skip invalid datetime rows
         cur.execute("""
-            INSERT INTO transformations.final_beijing_merged (
+            INSERT INTO transformations.final_city_merged (
                 station_id, datetime, source, pm25, pm10, o3, no2, so2, co, aqi, aqi_category
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            row['station_id'], row['datetime'], row['source'],
+            row['station_id'],
+            row['datetime'],
+            row['source'],
             float(row['pm25']) if pd.notna(row['pm25']) else None,
             float(row['pm10']) if pd.notna(row['pm10']) else None,
             float(row['o3']) if pd.notna(row['o3']) else None,
@@ -131,7 +138,7 @@ def merge_and_insert():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Final table created in transformations.final_beijing_merged")
+    print("✅ Final table created: transformations.final_city_merged")
 
 if __name__ == "__main__":
     merge_and_insert()

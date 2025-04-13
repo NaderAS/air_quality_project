@@ -17,7 +17,7 @@ def load_csv_as_table(file_path, raw_table_name):
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
 
-    schema = "csv_data"
+    schema = "historical_data"
     table_name = f"{schema}.{raw_table_name}"
 
     # 🔧 Create schema if not exists

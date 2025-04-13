@@ -53,9 +53,11 @@ def run_daily():
 
 def create_tables(conn):
     cur = conn.cursor()
+    
+    cur.execute("CREATE SCHEMA IF NOT EXISTS real_time_data;")
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS stations (
+        CREATE TABLE IF NOT EXISTS real_time_data.stations (
             station_id SERIAL PRIMARY KEY,
             name TEXT UNIQUE,
             city TEXT,
@@ -66,9 +68,9 @@ def create_tables(conn):
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS observations (
+        CREATE TABLE IF NOT EXISTS real_time_data.observations (
             observation_id SERIAL PRIMARY KEY,
-            station_id INTEGER REFERENCES stations(station_id),
+            station_id INTEGER REFERENCES real_time_data.stations(station_id),
             datetime TIMESTAMP,
             aqi INTEGER,
             dominant_pol TEXT,
@@ -81,9 +83,9 @@ def create_tables(conn):
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS pollutants (
+        CREATE TABLE IF NOT EXISTS real_time_data.pollutants (
             pollutant_id SERIAL PRIMARY KEY,
-            observation_id INTEGER REFERENCES observations(observation_id),
+            observation_id INTEGER REFERENCES real_time_data.observations(observation_id),
             name TEXT,
             value FLOAT
         );
@@ -91,7 +93,7 @@ def create_tables(conn):
 
     conn.commit()
     cur.close()
-    print("✅ Tables checked/created.")
+    print("✅ Tables checked/created in schema real_time_data.")
 
 if __name__ == "__main__":
     run_daily()

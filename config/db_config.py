@@ -7,4 +7,4 @@ DB_CONFIG = {
 }
 
 API_TOKEN = 'dac1496636788a89007e1abe981bf3da33db98c9'
-CITIES = ['los angeles', 'new york', 'beijing', 'delhi', 'paris']
+CITIES = ['beijing', 'delhi', 'paris']

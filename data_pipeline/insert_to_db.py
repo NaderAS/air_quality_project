@@ -8,7 +8,7 @@ def insert_data(conn, data):
 
         # Insert station or get its ID
         cur.execute("""
-            INSERT INTO stations (name, city, country, latitude, longitude)
+            INSERT INTO real_time_data.stations (name, city, country, latitude, longitude)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (name) DO NOTHING
             RETURNING station_id
@@ -46,7 +46,7 @@ def insert_data(conn, data):
 
         # INSERT OBSERVATION if not duplicate
         cur.execute("""
-            INSERT INTO observations (station_id, datetime, aqi, dominant_pol, source, temperature, humidity, pressure, wind)
+            INSERT INTO real_time_data.observations (station_id, datetime, aqi, dominant_pol, source, temperature, humidity, pressure, wind)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING observation_id
         """, (
@@ -62,7 +62,7 @@ def insert_data(conn, data):
         for pol in ['pm25', 'pm10', 'o3', 'co', 'no2', 'so2']:
             if pol in iaqi:
                 cur.execute("""
-                    INSERT INTO pollutants (observation_id, name, value)
+                    INSERT INTO real_time_data.pollutants (observation_id, name, value)
                     VALUES (%s, %s, %s)
                 """, (observation_id, pol, iaqi[pol]['v']))
 

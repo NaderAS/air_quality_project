@@ -29,3 +29,6 @@ config/db_config.py
 
 # Excel files
 *.xlsx
+data/Cleaned Burden Datasets/China_dataset.xlsx
+data/Cleaned Burden Datasets/France_dataset.xlsx
+data/Cleaned Burden Datasets/India_dataset.xlsx

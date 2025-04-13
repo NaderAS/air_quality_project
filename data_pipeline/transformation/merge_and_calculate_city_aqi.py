@@ -116,6 +116,12 @@ def merge_city_data():
 
     df_final = pd.concat(all_final_rows, ignore_index=True)
 
+    # ✅ Sort the data by datetime
+    df_final = (
+    pd.concat(all_final_rows, ignore_index=True)
+    .sort_values(by=['station_id', 'datetime'], ascending=[True, False])
+)
+
     for _, row in df_final.iterrows():
         if pd.isna(row['datetime']):
             continue
@@ -140,7 +146,7 @@ def merge_city_data():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Final table created: transformations.final_city_merged (no duplicates)")
+    print("✅ Final table created: transformations.final_city_merged (sorted by datetime)")
 
 if __name__ == "__main__":
     merge_city_data()

@@ -31,7 +31,14 @@ def run_daily():
                     log_file.write(f"{datetime.now()} - ERROR: WAQI - {city} - {e}\n")
 
             # Deduplicate
-            remove_observation_duplicates()
+            # Deduplicate
+            try:
+                remove_observation_duplicates()
+            except psycopg2.errors.UndefinedTable:
+                log_file.write(f"{datetime.now()} - SKIPPED: Deduplication (table doesn't exist yet)\n")
+            except Exception as e:
+                log_file.write(f"{datetime.now()} - ERROR: Deduplication - {e}\n")
+
 
             conn.close()
 

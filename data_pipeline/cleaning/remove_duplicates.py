@@ -8,7 +8,23 @@ def remove_observation_duplicates():
 
         print("🔍 Finding duplicate observations...")
 
-        # Step 1: Find duplicate observation_ids (keep the latest)
+        # Check if table exists
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'real_time_data' 
+                AND table_name = 'observations'
+            )
+        """)
+        table_exists = cur.fetchone()[0]
+
+        if not table_exists:
+            print("⚠️ Skipped: real_time_data.observations table does not exist yet.")
+            cur.close()
+            conn.close()
+            return
+
+        # Step 1: Find duplicate observation_ids (same station_id and datetime)
         cur.execute("""
             SELECT a.observation_id
             FROM real_time_data.observations a
@@ -45,5 +61,6 @@ def remove_observation_duplicates():
     except Exception as e:
         print(f"❌ Error during deduplication: {e}")
 
-# Run it
-remove_observation_duplicates()
+# Only run if this file is executed directly
+if __name__ == "__main__":
+    remove_observation_duplicates()

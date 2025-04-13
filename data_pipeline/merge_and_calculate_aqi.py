@@ -1,14 +1,14 @@
-import os
 import sys
+import os
 
-# Add project root to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))\
+# Ensure project root is in sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 import psycopg2
 from config.db_config import DB_CONFIG
 
-# EPA AQI breakpoints
+# AQI Breakpoints (EPA)
 AQI_BREAKPOINTS = {
     'pm25': [(0.0, 12.0, 0, 50), (12.1, 35.4, 51, 100), (35.5, 55.4, 101, 150),
              (55.5, 150.4, 151, 200), (150.5, 250.4, 201, 300), (250.5, 350.4, 301, 400), (350.5, 500.4, 401, 500)],
@@ -56,7 +56,8 @@ def get_aqi_category(aqi_value):
 def create_table_if_needed(cur):
     cur.execute("""
         CREATE SCHEMA IF NOT EXISTS transformations;
-        CREATE TABLE IF NOT EXISTS transformations.final_city_merged (
+        DROP TABLE IF EXISTS transformations.final_city_merged;
+        CREATE TABLE transformations.final_city_merged (
             station_id INTEGER,
             datetime TIMESTAMP,
             source TEXT,
@@ -71,11 +72,12 @@ def create_table_if_needed(cur):
         );
     """)
 
+
 def merge_and_insert():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     create_table_if_needed(cur)
-
+    
     all_final_rows = []
 
     for city_id, city_name in [(3, 'beijing'), (4, 'delhi'), (5, 'paris')]:
@@ -116,7 +118,7 @@ def merge_and_insert():
 
     for _, row in df_final.iterrows():
         if pd.isna(row['datetime']):
-            continue  # skip invalid datetime rows
+            continue
         cur.execute("""
             INSERT INTO transformations.final_city_merged (
                 station_id, datetime, source, pm25, pm10, o3, no2, so2, co, aqi, aqi_category
@@ -138,7 +140,7 @@ def merge_and_insert():
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Final table created: transformations.final_city_merged")
+    print("✅ Final table created: transformations.final_city_merged (no duplicates)")
 
 if __name__ == "__main__":
     merge_and_insert()

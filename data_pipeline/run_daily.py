@@ -7,8 +7,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config.db_config import DB_CONFIG, API_TOKEN, CITIES
 from data_pipeline.fetch_waqi import fetch_waqi_data
 from data_pipeline.insert_to_db import insert_data
-from data_pipeline.clean_data import clean_observations, clean_pollutants
-from data_pipeline.deduplicate import remove_observation_duplicates
+from data_pipeline.clean_export_data import clean_observations, clean_pollutants
+from data_pipeline.remove_duplicates import remove_observation_duplicates
 
 
 import psycopg2

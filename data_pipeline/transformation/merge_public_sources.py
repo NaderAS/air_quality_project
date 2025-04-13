@@ -79,7 +79,7 @@ def merge_public_sources():
     cur = conn.cursor()
     for _, row in df.iterrows():
         cur.execute("""
-            INSERT INTO transformations.merged_observations_pollutants (
+                INSERT INTO transformations.merged_observations_pollutants (
                 observation_id, station_id, datetime, source, temperature,
                 humidity, pressure, wind, pm25, pm10, o3, no2, so2, co
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)

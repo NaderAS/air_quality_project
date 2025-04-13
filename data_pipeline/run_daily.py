@@ -33,19 +33,6 @@ def run_daily():
             # Deduplicate
             remove_observation_duplicates()
 
-            # Export cleaned data for Power BI
-            try:
-                df_obs = pd.read_sql_query("SELECT * FROM real_time_data.observations", conn)
-                df_pol = pd.read_sql_query("SELECT * FROM real_time_data.pollutants", conn)
-                df_obs_clean = clean_observations(df_obs)
-                df_pol_clean = clean_pollutants(df_pol)
-                df = df_obs_clean.merge(df_pol_clean, on="observation_id")
-                os.makedirs("powerbi", exist_ok=True)
-                df.to_excel("powerbi/waqi_data.xlsx", index=False)
-                log_file.write(f"{datetime.now()} - SUCCESS: Exported Power BI data\n")
-            except Exception as e:
-                log_file.write(f"{datetime.now()} - ERROR: Export Power BI - {e}\n")
-
             conn.close()
 
         except Exception as conn_err:

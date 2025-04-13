@@ -20,10 +20,6 @@ Thumbs.db
 logs/
 *.log
 
-# Excel/PowerBI exports
-*.xlsx
-*.xls
-
 # Database credentials or environment configs
 config/db_config.py
 .env

@@ -15,7 +15,32 @@ A robust end-to-end data pipeline that collects, processes, and analyzes real-ti
 - 📤 Exports cleaned results for Power BI dashboards
 
 ---
+# 🌍 Air Quality Analysis Project
 
+A robust end-to-end data pipeline that collects, processes, and analyzes real-time and historical air quality data across major cities. This system integrates health burden statistics and supports visual analytics via Power BI.
+
+---
+
+## 🚀 Features
+
+- 📡 Fetches real-time air quality data via the WAQI API
+- 📁 Ingests historical air quality CSVs and health burden Excel files
+- 🧹 Cleans, deduplicates, and preprocesses datasets
+- 🔁 Combines real-time + historical + health burden data
+- 🧠 Calculates AQI and classifies into health categories
+- 💾 Stores data in PostgreSQL under appropriate schemas (`real_time_data`, `historical_data`, `burden_data`, `transformations`)
+- 📤 Exports cleaned results for Power BI dashboards
+
+---
+
+## ⚙️ Tech Stack
+
+- **Language**: Python
+- **Database**: PostgreSQL + pgAdmin
+- **Tools**: VS Code, Power BI
+- **API**: WAQI (World Air Quality Index)
+
+---
 ## ⚙️ Tech Stack
 
 - **Language**: Python

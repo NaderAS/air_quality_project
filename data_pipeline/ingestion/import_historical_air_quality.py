@@ -18,8 +18,17 @@ def load_csv_as_table(file_path, raw_table_name):
     # 🧹 Clean and sort by date column if it exists
     date_col = next((col for col in df.columns if "date" in col.lower()), None)
     if date_col:
-        df[date_col] = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-        df = df.sort_values(by=date_col, ascending=False)
+    # Convert to lowercase just to match easily
+        filename_lower = raw_table_name.lower()
+
+        # Use correct parsing logic per city
+        if "delhi" in filename_lower:
+            df[date_col] = pd.to_datetime(df[date_col], dayfirst=False, errors='coerce')
+
+        else:  # Beijing and Paris are day/month/year
+            df[date_col] = pd.to_datetime(df[date_col], format="%d/%m/%Y", errors='coerce')
+
+    df = df.sort_values(by=date_col, ascending=False)
 
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()

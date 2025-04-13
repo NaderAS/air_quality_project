@@ -94,7 +94,7 @@ def load_excel_to_table(file_path, raw_table_name):
     conn.close()
     print(f"✅ Done: {table_name} ({inserted} rows inserted)")
 
-def import_all_burden_excels():
+def import_burden_data():
     folder = "data/Cleaned Burden Datasets"
     for filename in os.listdir(folder):
         if filename.endswith(".xlsx"):
@@ -103,4 +103,4 @@ def import_all_burden_excels():
             load_excel_to_table(path, table_name)
 
 if __name__ == "__main__":
-    import_all_burden_excels()
+    import_burden_data()

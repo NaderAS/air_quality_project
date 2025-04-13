@@ -73,7 +73,7 @@ def create_table_if_needed(cur):
     """)
 
 
-def merge_and_insert():
+def merge_city_data():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     create_table_if_needed(cur)
@@ -143,4 +143,4 @@ def merge_and_insert():
     print("✅ Final table created: transformations.final_city_merged (no duplicates)")
 
 if __name__ == "__main__":
-    merge_and_insert()
+    merge_city_data()

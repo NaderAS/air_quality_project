@@ -42,7 +42,7 @@ def create_schema_and_table():
     conn.close()
     print("✅ Schema and table created (if not exist).")
 
-def merge_and_insert_data():
+def merge_public_sources():
     conn = psycopg2.connect(**DB_CONFIG)
 
     # Query to get merged and pivoted data
@@ -93,4 +93,4 @@ def merge_and_insert_data():
 
 if __name__ == "__main__":
     create_schema_and_table()
-    merge_and_insert_data()
+    merge_public_sources()

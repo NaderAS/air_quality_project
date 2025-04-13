@@ -1,19 +1,55 @@
 import sys
 import os
+from datetime import datetime
+import pandas as pd
+import psycopg2
 
-# Ensure project root is in sys.path
+# Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from config.db_config import DB_CONFIG, API_TOKEN, CITIES
-from data_pipeline.fetch_waqi import fetch_waqi_data
+from data_pipeline.ingestion.fetch_waqi import fetch_waqi_data
 from data_pipeline.insert_to_db import insert_data
-from data_pipeline.clean_export_data import clean_observations, clean_pollutants
-from data_pipeline.remove_duplicates import remove_observation_duplicates
+from data_pipeline.output.clean_export_data import clean_observations, clean_pollutants
+from data_pipeline.cleaning.remove_duplicates import remove_observation_duplicates
 
+def run_daily():
+    os.makedirs("logs", exist_ok=True)
+    log_path = f"logs/waqi_log_{datetime.now().strftime('%Y%m%d')}.txt"
 
-import psycopg2
-import pandas as pd
-from datetime import datetime
+    with open(log_path, "w") as log_file:
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            create_tables(conn)
+
+            for city in CITIES:
+                try:
+                    data = fetch_waqi_data(city, API_TOKEN)
+                    insert_data(conn, data)
+                    log_file.write(f"{datetime.now()} - SUCCESS: WAQI - {city}\n")
+                except Exception as e:
+                    log_file.write(f"{datetime.now()} - ERROR: WAQI - {city} - {e}\n")
+
+            # Deduplicate
+            remove_observation_duplicates()
+
+            # Export cleaned data for Power BI
+            try:
+                df_obs = pd.read_sql_query("SELECT * FROM observations", conn)
+                df_pol = pd.read_sql_query("SELECT * FROM pollutants", conn)
+                df_obs_clean = clean_observations(df_obs)
+                df_pol_clean = clean_pollutants(df_pol)
+                df = df_obs_clean.merge(df_pol_clean, on="observation_id")
+                os.makedirs("powerbi", exist_ok=True)
+                df.to_excel("powerbi/waqi_data.xlsx", index=False)
+                log_file.write(f"{datetime.now()} - SUCCESS: Exported Power BI data\n")
+            except Exception as e:
+                log_file.write(f"{datetime.now()} - ERROR: Export Power BI - {e}\n")
+
+            conn.close()
+
+        except Exception as conn_err:
+            log_file.write(f"{datetime.now()} - ERROR: DB connection failed - {conn_err}\n")
 
 def create_tables(conn):
     cur = conn.cursor()
@@ -57,37 +93,5 @@ def create_tables(conn):
     cur.close()
     print("✅ Tables checked/created.")
 
-# Create logs folder if not exists
-os.makedirs("logs", exist_ok=True)
-log_path = f"logs/waqi_log_{datetime.now().strftime('%Y%m%d')}.txt"
-
-with open(log_path, "w") as log_file:
-    conn = psycopg2.connect(**DB_CONFIG)
-    
-    # Create necessary tables if not already present
-    create_tables(conn)
-    
-    for city in CITIES:
-        try:
-            data = fetch_waqi_data(city, API_TOKEN)
-            insert_data(conn, data)
-            log_file.write(f"{datetime.now()} - SUCCESS: WAQI - {city}\\n")
-        except Exception as e:
-            log_file.write(f"{datetime.now()} - ERROR: WAQI - {city} - {e}\\n")
-    
-    # Deduplicate before exporting
-    remove_observation_duplicates()
-
-    # Export for Power BI
-    try:
-        df_obs = pd.read_sql_query("SELECT * FROM observations", conn)
-        df_pol = pd.read_sql_query("SELECT * FROM pollutants", conn)
-        df_obs_clean = clean_observations(df_obs)
-        df_pol_clean = clean_pollutants(df_pol)
-        df = df_obs_clean.merge(df_pol_clean, on='observation_id')
-        os.makedirs("powerbi", exist_ok=True)
-        df.to_excel("powerbi/waqi_data.xlsx", index=False)
-    except Exception as e:
-        log_file.write(f"{datetime.now()} - ERROR: Exporting data - {e}\\n")
-    
-    conn.close()
+if __name__ == "__main__":
+    run_daily()

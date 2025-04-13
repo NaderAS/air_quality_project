@@ -55,7 +55,7 @@ def load_csv_as_table(file_path, raw_table_name):
     conn.close()
     print(f"✅ Imported to table: {table_name}")
 
-def import_all_csvs_separately():
+def import_historical_data():
     folder = "data/Air Quality Datasets"
     for filename in os.listdir(folder):
         if filename.endswith(".csv"):
@@ -64,4 +64,4 @@ def import_all_csvs_separately():
             load_csv_as_table(file_path, raw_table_name)
 
 if __name__ == "__main__":
-    import_all_csvs_separately()
+    import_historical_data()

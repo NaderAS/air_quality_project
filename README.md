@@ -1,30 +1,78 @@
-# Air Quality Analysis Project 🌍
+# 🌍 Air Quality Analysis Project
 
-This project collects, cleans, and analyzes real-time and historical air quality data from multiple global cities. The data is stored in a PostgreSQL database and exported for Power BI dashboards.
+A robust end-to-end data pipeline that collects, processes, and analyzes real-time and historical air quality data across major cities. This system integrates health burden statistics and supports visual analytics via Power BI.
 
-## Features
-- 🌐 Real-time air quality data from the WAQI API
-- 🗃️ Historical datasets imported from CSV files
-- 🧼 Deduplication and data cleaning logic
-- 📦 PostgreSQL + pgAdmin backend
-- 📊 Excel exports for Power BI dashboards
+---
 
-## Tech Stack
-- Python
-- PostgreSQL
-- VS Code
-- Power BI
-- WAQI API
+## 🚀 Features
 
-## Folder Structure
-project/ ├── config/ # Database credentials (gitignored) ├── data/ # Historical air quality & healthcare CSVs ├── data_pipeline/ # ETL scripts (fetch, insert, clean, dedup) ├── logs/ # Daily log files ├── powerbi/ # Final exported Excel files
+- 📡 Fetches real-time air quality data via the WAQI API
+- 📁 Ingests historical air quality CSVs and health burden Excel files
+- 🧹 Cleans, deduplicates, and preprocesses datasets
+- 🔁 Combines real-time + historical + health burden data
+- 🧠 Calculates AQI and classifies into health categories
+- 💾 Stores data in PostgreSQL under appropriate schemas (`real_time_data`, `historical_data`, `burden_data`, `transformations`)
+- 📤 Exports cleaned results for Power BI dashboards
+
+---
+
+## ⚙️ Tech Stack
+
+- **Language**: Python
+- **Database**: PostgreSQL + pgAdmin
+- **Tools**: VS Code, Power BI
+- **API**: WAQI (World Air Quality Index)
+
+---
+
+## 📁 Project Structure
+
+air_quality_project/ ├── config/ # DB credentials & API token (gitignored) │ └── db_config.py │ ├── data/ # Input datasets │ ├── Air Quality Datasets/ │ ├── Burden Datasets/ │ └── Cleaned Burden Datasets/ │ ├── data_pipeline/ # Core ETL pipeline │ ├── cleaning/ │ │ └── remove_duplicates.py │ ├── ingestion/ │ │ ├── fetch_waqi.py │ │ ├── import_burden_data.py │ │ └── import_historical_air_quality.py │ ├── output/ │ │ └── clean_export_data.py │ ├── transformation/ │ │ ├── merge_and_calculate_city_aqi.py │ │ ├── merge_burden_with_aqi.py │ │ ├── merge_public_sources.py │ │ └── preprocess_burden_excel.py │ ├── insert_to_db.py │ └── run_daily.py │ ├── sql/ # SQL schema and table setup ├── powerbi/ # Excel exports and PBIX files ├── logs/ # Logging outputs ├── main.py # Runs the full pipeline └── requirements.txt
 
 
-## Setup
+---
+
+## ▶️ Usage
+
+### 🧰 Setup
 1. Clone the repo
-2. Run `pip install -r requirements.txt`
-3. Add your `db_config.py` under `config/` with DB credentials
-4. Run the pipeline: `python data_pipeline/run_daily.py`
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
 
-## Disclaimer
-This repo ignores sensitive files like `db_config.py`, `.env`, and local `.xlsx` exports.
+3. Create config/db_config.py with your credentials:
+
+DB_CONFIG = {
+    'dbname': 'air_quality_db',
+    'user': 'postgres',
+    'password': 'your_password',
+    'host': 'localhost',
+    'port': 5432
+}
+
+API_TOKEN = 'your_waqi_api_key'
+
+CITIES = ['beijing', 'delhi', 'paris']
+
+4. Prepare your PostgreSQL DB and required schemas (real_time_data, historical_data, etc.)
+5. 🚀 Run the pipeline
+python main.py
+
+This will:
+
+1. Fetch and insert real-time data
+
+2. Ingest historical and burden datasets
+
+3. Clean, merge, and calculate AQI
+
+4. Output final tables to PostgreSQL for Power BI
+
+📊 Power BI
+Cleaned data is available in the powerbi/ folder as Excel files or directly from the database. Connect Power BI to transformations.final_city_merged and transformations.burden_aqi_merged for rich insights.
+
+⚠️ Disclaimer
+This repo excludes the following files for privacy and storage reasons:
+
+- config/db_config.py
+- .env, .vscode/, *.log, and large binary exports

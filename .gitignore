@@ -26,3 +26,6 @@ config/db_config.py
 
 # Python virtual environment packages
 *.egg-info/
+
+# Excel files
+*.xlsx

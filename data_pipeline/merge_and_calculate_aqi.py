@@ -4,113 +4,134 @@ import os
 # Ensure project root is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import psycopg2
 import pandas as pd
+import psycopg2
 from config.db_config import DB_CONFIG
 
-def calculate_pm25_aqi(pm25):
+# EPA AQI breakpoints
+AQI_BREAKPOINTS = {
+    'pm25': [(0.0, 12.0, 0, 50), (12.1, 35.4, 51, 100), (35.5, 55.4, 101, 150),
+             (55.5, 150.4, 151, 200), (150.5, 250.4, 201, 300), (250.5, 350.4, 301, 400), (350.5, 500.4, 401, 500)],
+    'pm10': [(0, 54, 0, 50), (55, 154, 51, 100), (155, 254, 101, 150),
+             (255, 354, 151, 200), (355, 424, 201, 300), (425, 504, 301, 400), (505, 604, 401, 500)],
+    'o3': [(0.0, 0.054, 0, 50), (0.055, 0.070, 51, 100), (0.071, 0.085, 101, 150),
+           (0.086, 0.105, 151, 200), (0.106, 0.200, 201, 300)],
+    'no2': [(0, 53, 0, 50), (54, 100, 51, 100), (101, 360, 101, 150),
+            (361, 649, 151, 200), (650, 1249, 201, 300)],
+    'so2': [(0, 35, 0, 50), (36, 75, 51, 100), (76, 185, 101, 150),
+            (186, 304, 151, 200), (305, 604, 201, 300)],
+    'co': [(0.0, 4.4, 0, 50), (4.5, 9.4, 51, 100), (9.5, 12.4, 101, 150),
+           (12.5, 15.4, 151, 200), (15.5, 30.4, 201, 300)]
+}
+
+AQI_CATEGORIES = [
+    (0, 50, "Good"),
+    (51, 100, "Moderate"),
+    (101, 150, "Unhealthy for Sensitive Groups"),
+    (151, 200, "Unhealthy"),
+    (201, 300, "Very Unhealthy"),
+    (301, 500, "Hazardous"),
+]
+
+def calculate_aqi(pollutant, value):
     try:
-        pm25 = float(pm25)
-        if pm25 <= 12:
-            return round((50 / 12) * pm25)
-        elif pm25 <= 35.4:
-            return round(((100 - 51) / (35.4 - 12.1)) * (pm25 - 12.1) + 51)
-        elif pm25 <= 55.4:
-            return round(((150 - 101) / (55.4 - 35.5)) * (pm25 - 35.5) + 101)
-        elif pm25 <= 150.4:
-            return round(((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5) + 151)
-        elif pm25 <= 250.4:
-            return round(((300 - 201) / (250.4 - 150.5)) * (pm25 - 150.5) + 201)
-        else:
-            return 301
+        if value is None or pd.isna(value):
+            return None
+        value = float(value)
+        for bp_low, bp_high, aqi_low, aqi_high in AQI_BREAKPOINTS[pollutant]:
+            if bp_low <= value <= bp_high:
+                return round((aqi_high - aqi_low) / (bp_high - bp_low) * (value - bp_low) + aqi_low)
     except:
         return None
+    return None
 
-def create_final_table():
-    query_schema = "CREATE SCHEMA IF NOT EXISTS transformations;"
-    query_table = """
-    CREATE TABLE IF NOT EXISTS transformations.final_beijing_merged (
-        station_id INTEGER,
-        datetime TIMESTAMP,
-        source TEXT,
-        pm25 DOUBLE PRECISION,
-        pm10 DOUBLE PRECISION,
-        o3 DOUBLE PRECISION,
-        no2 DOUBLE PRECISION,
-        so2 DOUBLE PRECISION,
-        co DOUBLE PRECISION,
-        aqi INTEGER
-    );
-    """
+def get_aqi_category(aqi_value):
+    if aqi_value is None:
+        return None
+    for low, high, label in AQI_CATEGORIES:
+        if low <= aqi_value <= high:
+            return label
+    return "Out of Range"
 
-    conn = psycopg2.connect(**DB_CONFIG)
-    cur = conn.cursor()
-    cur.execute(query_schema)
-    cur.execute(query_table)
-    conn.commit()
-    cur.close()
-    conn.close()
-    print("✅ Created transformations.final_beijing_merged")
+def create_table_if_needed(cur):
+    cur.execute("""
+        CREATE SCHEMA IF NOT EXISTS transformations;
+        CREATE TABLE IF NOT EXISTS transformations.final_beijing_merged (
+            station_id INTEGER,
+            datetime TIMESTAMP,
+            source TEXT,
+            pm25 DOUBLE PRECISION,
+            pm10 DOUBLE PRECISION,
+            o3 DOUBLE PRECISION,
+            no2 DOUBLE PRECISION,
+            so2 DOUBLE PRECISION,
+            co DOUBLE PRECISION,
+            aqi INTEGER,
+            aqi_category TEXT
+        );
+    """)
 
 def merge_and_insert():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
+    create_table_if_needed(cur)
 
-    # Load both tables into pandas
-    query_live = """
-    SELECT station_id, datetime, source,
-           pm25, pm10, o3, no2, so2, co
-    FROM transformations.merged_observations_pollutants
-    WHERE station_id = 3;
-    """
-    query_hist = "SELECT * FROM csv_data.beijing_air_quality;"
+    # Live
+    df_live = pd.read_sql("""
+        SELECT station_id, datetime, source, pm25, pm10, o3, no2, so2, co
+        FROM transformations.merged_observations_pollutants
+        WHERE station_id = 3
+    """, conn)
 
-    df_live = pd.read_sql(query_live, conn)
-    df_hist = pd.read_sql(query_hist, conn)\
-    
-    # Clean column names
-    df_hist.columns = [col.replace("_", "").strip().lower() for col in df_hist.columns]
-
-    import numpy as np
-
-    # Convert empty strings and non-numeric entries to NaN
-    df_hist = df_hist.replace(r'^\s*$', np.nan, regex=True)
-
-# Convert all relevant columns to numeric (force non-numeric to NaN)
-    cols_to_convert = ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']
-    for col in cols_to_convert:
-        df_hist[col] = pd.to_numeric(df_hist[col], errors='coerce')
-
-    # Clean and align historical data
-    df_hist.columns = [col.strip().lower().replace(' ', 'NaN') for col in df_hist.columns]
-    df_hist['datetime'] = pd.to_datetime(df_hist['date'], format="%d/%m/%Y")
+    # Historical
+    df_hist = pd.read_sql("SELECT * FROM csv_data.beijing_air_quality", conn)
+    df_hist.columns = [
+        col.strip().lower().replace("_", "") for col in df_hist.columns
+    ]
+    df_hist['datetime'] = pd.to_datetime(df_hist['date'], format='%d/%m/%Y', errors='coerce')
     df_hist['station_id'] = 3
     df_hist['source'] = 'csv'
 
-    df_hist['aqi'] = df_hist['pm25'].apply(calculate_pm25_aqi)
+    for pol in ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']:
+        df_hist[pol] = pd.to_numeric(df_hist.get(pol), errors='coerce')
 
-    df_hist = df_hist[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi']]
+    # AQI calculation
+    def row_max_aqi(row):
+        values = [calculate_aqi(pol, row[pol]) for pol in ['pm25', 'pm10', 'o3', 'no2', 'so2', 'co']]
+        values = [v for v in values if v is not None]
+        return max(values) if values else None
 
-    df_live['aqi'] = df_live['pm25'].apply(calculate_pm25_aqi)
+    for df in [df_live, df_hist]:
+        df['aqi'] = df.apply(row_max_aqi, axis=1)
+        df['aqi_category'] = df['aqi'].apply(get_aqi_category)
 
-    df_live = df_live[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi']]
+    df_live = df_live[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi', 'aqi_category']]
+    df_hist = df_hist[['station_id', 'datetime', 'source', 'pm25', 'pm10', 'o3', 'no2', 'so2', 'co', 'aqi', 'aqi_category']]
 
-    # Merge the tables
-    df_merged = pd.concat([df_live, df_hist], ignore_index=True)
+    # Final table
+    df_final = pd.concat([df_live, df_hist], ignore_index=True)
 
-    # Insert into final table
-    for _, row in df_merged.iterrows():
+    for _, row in df_final.iterrows():
         cur.execute("""
             INSERT INTO transformations.final_beijing_merged (
-                station_id, datetime, source, pm25, pm10, o3, no2, so2, co, aqi
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, tuple(row))
+                station_id, datetime, source, pm25, pm10, o3, no2, so2, co, aqi, aqi_category
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            row['station_id'], row['datetime'], row['source'],
+            float(row['pm25']) if pd.notna(row['pm25']) else None,
+            float(row['pm10']) if pd.notna(row['pm10']) else None,
+            float(row['o3']) if pd.notna(row['o3']) else None,
+            float(row['no2']) if pd.notna(row['no2']) else None,
+            float(row['so2']) if pd.notna(row['so2']) else None,
+            float(row['co']) if pd.notna(row['co']) else None,
+            int(row['aqi']) if pd.notna(row['aqi']) else None,
+            row['aqi_category']
+        ))
 
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Merged and inserted data into transformations.final_beijing_merged")
+    print("✅ Final table created in transformations.final_beijing_merged")
 
 if __name__ == "__main__":
-    create_final_table()
     merge_and_insert()

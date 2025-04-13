@@ -22,7 +22,7 @@ def insert_data(conn, data):
 
         station_id = cur.fetchone()
         if not station_id:
-            cur.execute("SELECT station_id FROM stations WHERE name = %s", (city_data['name'],))
+            cur.execute("SELECT station_id FROM real_time_data.stations WHERE name = %s", (city_data['name'],))
             station_id = cur.fetchone()
         station_id = station_id[0]
 
@@ -34,7 +34,7 @@ def insert_data(conn, data):
 
         # 🔍 CHECK FOR EXISTING observation BEFORE INSERTING
         cur.execute("""
-            SELECT observation_id FROM observations
+            SELECT observation_id FROM real_time_data.observations
             WHERE station_id = %s AND datetime = %s
         """, (station_id, obs_time))
         existing = cur.fetchone()

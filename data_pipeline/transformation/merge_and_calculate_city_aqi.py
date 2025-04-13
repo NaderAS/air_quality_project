@@ -80,7 +80,7 @@ def merge_city_data():
     
     all_final_rows = []
 
-    for city_id, city_name in [(3, 'beijing'), (4, 'delhi'), (5, 'paris')]:
+    for city_id, city_name in [(1, 'beijing'), (2, 'delhi'), (3, 'paris')]:
         print(f"📥 Processing {city_name.capitalize()} (station_id={city_id})...")
 
         # Live data
@@ -91,7 +91,7 @@ def merge_city_data():
         """, conn)
 
         # Historical data
-        df_hist = pd.read_sql(f"SELECT * FROM csv_data.{city_name}_air_quality", conn)
+        df_hist = pd.read_sql(f"SELECT * FROM historical_data.{city_name}_air_quality", conn)
         df_hist.columns = [col.strip().lower().replace("_", "") for col in df_hist.columns]
         df_hist['datetime'] = pd.to_datetime(df_hist['date'], dayfirst=False, errors='coerce')
         df_hist['station_id'] = city_id

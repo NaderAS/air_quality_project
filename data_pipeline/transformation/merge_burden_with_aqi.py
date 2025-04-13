@@ -28,9 +28,9 @@ def merge_burden_data():
     india_df = pd.read_sql("SELECT * FROM burden_data.india_dataset", conn)
 
     # Step 3: Add station_id and ensure year is int
-    china_df["station_id"] = 3
-    france_df["station_id"] = 5
-    india_df["station_id"] = 4
+    china_df["station_id"] = 1
+    india_df["station_id"] = 2
+    france_df["station_id"] = 3
 
     for df in [china_df, france_df, india_df]:
         df["year"] = df["year"].astype(int)

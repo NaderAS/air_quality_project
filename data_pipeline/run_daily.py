@@ -35,8 +35,8 @@ def run_daily():
 
             # Export cleaned data for Power BI
             try:
-                df_obs = pd.read_sql_query("SELECT * FROM observations", conn)
-                df_pol = pd.read_sql_query("SELECT * FROM pollutants", conn)
+                df_obs = pd.read_sql_query("SELECT * FROM real_time_data.observations", conn)
+                df_pol = pd.read_sql_query("SELECT * FROM real_time_data.pollutants", conn)
                 df_obs_clean = clean_observations(df_obs)
                 df_pol_clean = clean_pollutants(df_pol)
                 df = df_obs_clean.merge(df_pol_clean, on="observation_id")
@@ -53,7 +53,7 @@ def run_daily():
 
 def create_tables(conn):
     cur = conn.cursor()
-    
+
     cur.execute("CREATE SCHEMA IF NOT EXISTS real_time_data;")
 
     cur.execute("""

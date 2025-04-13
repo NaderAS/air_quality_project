@@ -11,8 +11,8 @@ def remove_observation_duplicates():
         # Step 1: Find duplicate observation_ids (keep the latest)
         cur.execute("""
             SELECT a.observation_id
-            FROM observations a
-            JOIN observations b
+            FROM real_time_data.observations a
+            JOIN real_time_data.observations b
               ON a.station_id = b.station_id AND a.datetime = b.datetime
             WHERE a.observation_id < b.observation_id
         """)
@@ -26,13 +26,13 @@ def remove_observation_duplicates():
 
             # Step 2: Delete related pollutants first
             cur.execute("""
-                DELETE FROM pollutants
+                DELETE FROM real_time_data.pollutants
                 WHERE observation_id = ANY(%s)
             """, (duplicate_ids,))
 
             # Step 3: Delete duplicate observations
             cur.execute("""
-                DELETE FROM observations
+                DELETE FROM real_time_data.observations
                 WHERE observation_id = ANY(%s)
             """, (duplicate_ids,))
 

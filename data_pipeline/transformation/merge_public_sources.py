@@ -63,9 +63,9 @@ def merge_public_sources():
         MAX(CASE WHEN p.name = 'so2' THEN p.value END) AS so2,
         MAX(CASE WHEN p.name = 'co' THEN p.value END) AS co
     FROM
-        public.observations o
+        real_time_data.observations o
     JOIN
-        public.pollutants p
+        real_time_data.pollutants p
     ON
         o.observation_id = p.observation_id
     GROUP BY

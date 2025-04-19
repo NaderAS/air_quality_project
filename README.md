@@ -49,7 +49,7 @@ air_quality_project/
 ├── powerbi/                    # Excel exports and PBIX files
 ├── logs/                       # Logging outputs
 ├── main.py                     # Runs the full pipeline
-├── .github/workflows/      # GitHub Actions pipeline
+├── .github/workflows/          # GitHub Actions pipeline
 └── requirements.txt
 ```
 

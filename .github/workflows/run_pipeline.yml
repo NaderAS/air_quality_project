@@ -3,7 +3,7 @@ name: Run Air Quality Pipeline
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'  # Runs daily at 3 AM UTC
+    - cron: '0 * * * *'  # Runs every hour at minute 0 UTC
 
 jobs:
   run-pipeline:

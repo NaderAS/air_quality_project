@@ -1,8 +1,8 @@
 DB_CONFIG = {
-    'dbname': 'air_quality_db',
-    'user': 'postgres',
-    'password': 'admin',
-    'host': 'localhost',
+    'dbname': 'air_quality_db_krsa',
+    'user': 'air_quality_db_krsa_user',
+    'password': 'IFZsFQrYUubuxadc12LD4qTL9FM0pQqE',
+    'host': 'dpg-d014uvruibrs73f18lb0-a.virginia-postgres.render.com',
     'port': 5432
 }
 
